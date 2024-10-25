@@ -1,5 +1,5 @@
 _schema-version: '3.1'
-ID: embeddingapp
+ID: security
 version: 1.0.0
 description: "A simple CAP project."
 parameters:
@@ -8,16 +8,14 @@ build-parameters:
   before-all:
     - builder: custom
       commands:
-        - npm ci
-        - npx cds build --production
+        - npx -p @sap/cds-dk cds build --production
 modules:
-
   # ------------------------------------------------------------
-  # UI APP MODULE
+  # SECURITY UI APP MODULE
   # ------------------------------------------------------------
-  - name: embeddingappui
+  - name: app-security
     type: html5
-    path: app/embeddingappui
+    path: app/project1
     build-parameters:
       build-result: dist
       builder: custom
@@ -25,6 +23,7 @@ modules:
         - npm install
         - npm run build:cf
       supported-platforms: []
+
 
   # ------------------------------------------------------------
   # HTML5 APP REPOSITORY DEPLOYER MODULE
@@ -40,22 +39,22 @@ modules:
       build-result: gen/app
       requires:
         - artifacts:
-            - embeddingappui-content.zip
-          name: embeddingappui
+            - security-content.zip
+          name: app-security
           target-path: gen/app
 
 
   # ------------------------------------------------------------
   # SAP BUILD WORK ZONE DESTINATIONS MODULE
   # ------------------------------------------------------------
-  - name: embeddingapp-destinations
+  - name: app-destinations
     type: com.sap.application.content
     requires:
-      - name: embeddingapp-auth
+      - name: security-auth
         parameters:
           service-key:
-            name: embeddingapp-auth-key
-      - name: embeddingapp-destination
+            name: security-auth-key
+      - name: security-destination
         parameters:
           content-target: true
       - name: ui5-html5repo
@@ -68,35 +67,33 @@ modules:
         instance:
           existing_destinations_policy: update
           destinations:
-            - Name: app-service-embedding-auth
-              ServiceInstanceName: embeddingapp-auth
-              ServiceKeyName: embeddingapp-auth-key
+            - Name: app-service-security-auth
+              ServiceInstanceName: security-auth
+              ServiceKeyName: security-auth-key
               Authentication: OAuth2UserTokenExchange
-              sap.cloud.service: embeddingapp-service
+              sap.cloud.service: app-service
             - Name: app-service-ui5-html5repo
               ServiceInstanceName: ui5-html5repo
               ServiceKeyName: ui5-html5repo-key
-              sap.cloud.service: embeddingapp-service
-            - Name: embeddingapp-srv
-              Description: Embedding Application - Server Module
+              sap.cloud.service: app-service
+            - Name: security-srv
+              Description: Security Application - Server Module
               URL: ~{srv-api/srv-url}
-              TokenServiceInstanceName: embeddingapp-auth
-              TokenServiceKeyName: embeddingapp-auth-key
+              TokenServiceInstanceName: security-auth
+              TokenServiceKeyName: security-auth-key
               Authentication: OAuth2UserTokenExchange
-              sap.cloud.service: embeddingapp-service
+              sap.cloud.service: app-service
     build-parameters:
       no-source: true
 
 
-  - name: embeddingapp-srv
+  - name: security-srv
     type: nodejs
     path: gen/srv
     parameters:
       buildpack: nodejs_buildpack
-      readiness-health-check-type: http
-      readiness-health-check-http-endpoint: /health
     build-parameters:
-      builder: npm
+      builder: npm-ci
       ignore:
         - default-*.json
         - .env
@@ -107,10 +104,11 @@ modules:
         properties:
           srv-url: ${default-url}
     requires:
-      - name: embeddingapp-db
-      - name: embeddingapp-auth
+      - name: security-db
+      - name: security-auth
+      - name: security-destination
 
-  - name: embeddingapp-db-deployer
+  - name: security-db-deployer
     type: hdb
     path: gen/db
     parameters:
@@ -122,7 +120,7 @@ modules:
         - "*node_modules*"
         - package-lock.json
     requires:
-      - name: embeddingapp-db
+      - name: security-db
 
 resources:
 
@@ -135,8 +133,8 @@ resources:
       service-plan: app-host
 
 
-   # ----------- DESTINATION SERVICE ----------------------------
-  - name: embeddingapp-destination
+  # ----------- DESTINATION SERVICE ----------------------------
+  - name: security-destination
   # ------------------------------------------------------------
     type: org.cloudfoundry.managed-service
     parameters:
@@ -145,17 +143,23 @@ resources:
       config:
         HTML5Runtime_enabled: true
 
-  - name: embeddingapp-db
+
+  - name: security-db
     type: com.sap.xs.hdi-container
     parameters:
       service: hana
       service-plan: hdi-shared
-  - name: embeddingapp-auth
+  - name: security-auth
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
       service-plan: application
       path: ./xs-security.json
       config:
-        xsappname: embeddingapp-${org}-${space}
+        xsappname: security-${org}-${space}
         tenant-mode: dedicated
+        role-collections:
+        - name: 'DemoSecurityAdminRoleCollection-${space}'
+          description: Admin role collection for Security demo app
+          role-template-references:
+          - $XSAPPNAME.admin

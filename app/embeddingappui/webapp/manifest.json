@@ -1,5 +1,9 @@
 {
   "_version": "1.65.0",
+  "sap.cloud": {
+    "public": true,
+    "service": "embeddingapp-service"
+  },
   "sap.app": {
     "id": "embeddingappui",
     "type": "application",
@@ -17,7 +21,7 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/odata/v4/service/demo/",
+        "uri": "odata/v4/service/demo/",
         "type": "OData",
         "settings": {
           "annotations": [],
