@@ -1,0 +1,9 @@
+cds add hana
+cds add xsuaa
+cds add mta
+
+mbt build
+cf deploy mta_archives/embeddingapp_1.0.0.mtar
+
+
+
